@@ -4,6 +4,8 @@ import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
+// Initialize Firebase early in the app lifecycle
+import '@/app/config/firebase.config';
 
 export const unstable_settings = {
   anchor: '(tabs)',

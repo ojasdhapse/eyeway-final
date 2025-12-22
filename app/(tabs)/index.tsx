@@ -1,16 +1,32 @@
 import { StatusIndicator } from '@/components/status-indicator';
 import { VoiceButton } from '@/components/voice-button';
 import { EyewayColors } from '@/constants/theme';
+import { useAuth } from '@/hooks/useAuth';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { Redirect, useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+
 
 export default function HomeScreen() {
+  const { token, loading } = useAuth(); 
+  
   const router = useRouter();
   const [status, setStatus] = useState<'ready' | 'navigating' | 'error'>('ready');
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
+  // 🚫 If not authenticated, redirect to login
+  if (!token) {
+    return <Redirect href="/login" />;
+  }
 
   const handleStartNavigation = () => {
     router.push('/navigation');
