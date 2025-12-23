@@ -1,3 +1,4 @@
+import { saveRouteToCloud } from '@/app/services/savedRoutes';
 import { ObstacleDetector } from '@/components/obstacle-detector';
 import { EyewayColors } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
@@ -28,12 +29,14 @@ interface NavigationData {
 
 export default function ActiveNavigationScreen() {
     const router = useRouter();
-    const params = useLocalSearchParams();
+    const params = useLocalSearchParams<{ navigationData?: string; destination?: string }>();
     const [navigationData, setNavigationData] = useState<NavigationData | null>(null);
     const [currentStepIndex, setCurrentStepIndex] = useState(0);
     const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number } | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [isSaving, setIsSaving] = useState(false);
+    const [saveSuccess, setSaveSuccess] = useState(false);
     const locationSubscription = useRef<Location.LocationSubscription | (() => void) | null>(null);
     const lastSpokenStep = useRef<number>(-1);
 
@@ -227,6 +230,31 @@ export default function ActiveNavigationScreen() {
         }, 3000);
     };
 
+    const handleSaveRoute = async () => {
+        if (!navigationData || !params.destination) return;
+        setIsSaving(true);
+        try {
+            await saveRouteToCloud(String(params.destination), String(params.destination));
+            setSaveSuccess(true);
+            Speech.speak('Route saved to your account', {
+                language: 'en',
+                pitch: 1.0,
+                rate: 0.9,
+            });
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        } catch (err) {
+            console.error('Failed to save route', err);
+            Speech.speak('Could not save this route. Please try again.', {
+                language: 'en',
+                pitch: 1.0,
+                rate: 0.9,
+            });
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
     const handleEndNavigation = () => {
         // Disable obstacle detection before exiting
         setObstacleDetectionEnabled(false);
@@ -367,6 +395,47 @@ export default function ActiveNavigationScreen() {
                         </View>
                     ))}
                 </ScrollView>
+            </View>
+
+            <View style={styles.footerButtons}>
+                <Pressable
+                    onPress={handleEndNavigation}
+                    style={({ pressed }) => [
+                        styles.footerButton,
+                        pressed && styles.footerButtonPressed,
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityLabel="End navigation"
+                >
+                    <Ionicons name="close" size={24} color={EyewayColors.textPrimary} />
+                    <Text style={styles.footerButtonText}>End Navigation</Text>
+                </Pressable>
+
+                <Pressable
+                    onPress={handleSaveRoute}
+                    disabled={isSaving || saveSuccess || !params.destination}
+                    style={({ pressed }) => [
+                        styles.footerButton,
+                        styles.secondaryButton,
+                        (pressed || saveSuccess) && styles.secondaryButtonPressed,
+                        (isSaving || saveSuccess || !params.destination) && styles.footerButtonDisabled,
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityLabel="Save this route"
+                >
+                    {isSaving ? (
+                        <ActivityIndicator size="small" color={EyewayColors.textPrimary} />
+                    ) : (
+                        <Ionicons
+                            name={saveSuccess ? "checkmark" : "bookmark"}
+                            size={24}
+                            color={EyewayColors.textPrimary}
+                        />
+                    )}
+                    <Text style={styles.footerButtonText}>
+                        {saveSuccess ? 'Saved' : 'Save Route'}
+                    </Text>
+                </Pressable>
             </View>
 
             {/* Obstacle Detection Overlay (NEW - non-intrusive) */}
@@ -534,5 +603,38 @@ const styles = StyleSheet.create({
     upcomingStepDistance: {
         fontSize: 12,
         color: EyewayColors.textSecondary,
+    },
+    footerButtons: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        gap: 12,
+        marginTop: 12,
+    },
+    footerButton: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        paddingVertical: 14,
+        borderRadius: 12,
+        backgroundColor: EyewayColors.primaryButton,
+    },
+    footerButtonPressed: {
+        backgroundColor: EyewayColors.primaryButtonHover,
+    },
+    footerButtonDisabled: {
+        opacity: 0.6,
+    },
+    footerButtonText: {
+        color: EyewayColors.textPrimary,
+        fontWeight: '700',
+        fontSize: 16,
+    },
+    secondaryButton: {
+        backgroundColor: EyewayColors.secondaryButton,
+    },
+    secondaryButtonPressed: {
+        backgroundColor: EyewayColors.secondaryButtonHover,
     },
 });

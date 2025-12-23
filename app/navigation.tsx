@@ -5,16 +5,18 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Speech from 'expo-speech';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 export default function NavigationScreen() {
     const router = useRouter();
+    const params = useLocalSearchParams<{ destination?: string; autoStart?: string }>();
     const [destination, setDestination] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number } | null>(null);
+    const hasAutoStarted = useRef(false);
 
     useEffect(() => {
         // Get user's current location on mount
@@ -41,8 +43,28 @@ export default function NavigationScreen() {
         })();
     }, []);
 
-    const handleStartNavigation = async () => {
-        if (!destination.trim()) {
+    useEffect(() => {
+        if (params.destination && typeof params.destination === 'string') {
+            setDestination(params.destination);
+        }
+    }, [params.destination]);
+
+    useEffect(() => {
+        if (
+            params.autoStart === 'true' &&
+            params.destination &&
+            currentLocation &&
+            !hasAutoStarted.current
+        ) {
+            hasAutoStarted.current = true;
+            handleStartNavigation(true);
+        }
+    }, [params.autoStart, params.destination, currentLocation]);
+
+    const handleStartNavigation = async (isAutoStart = false) => {
+        const targetDestination = params.destination && isAutoStart ? params.destination : destination;
+
+        if (!targetDestination?.trim()) {
             Speech.speak('Please enter a destination', {
                 language: 'en',
                 pitch: 1.0,
@@ -63,7 +85,7 @@ export default function NavigationScreen() {
 
         setIsLoading(true);
         try {
-            Speech.speak(`Starting navigation to ${destination}`, {
+            Speech.speak(`Starting navigation to ${targetDestination}`, {
                 language: 'en',
                 pitch: 1.0,
                 rate: 0.9,
@@ -74,7 +96,7 @@ export default function NavigationScreen() {
             console.log('🚀 Making navigation request to:', NAVIGATION_ENDPOINT);
             console.log('📍 Request payload:', {
                 current_location: currentLocation,
-                destination: destination.trim(),
+                destination: targetDestination.trim(),
             });
 
             const response = await fetch(NAVIGATION_ENDPOINT, {
@@ -84,7 +106,7 @@ export default function NavigationScreen() {
                 },
                 body: JSON.stringify({
                     current_location: currentLocation,
-                    destination: destination.trim(),
+                    destination: targetDestination.trim(),
                 }),
             });
 
@@ -106,6 +128,7 @@ export default function NavigationScreen() {
                         pathname: '/active-navigation',
                         params: {
                             navigationData: JSON.stringify(data),
+                            destination: targetDestination,
                         },
                     });
                 }, 2000); // Give time for speech to complete

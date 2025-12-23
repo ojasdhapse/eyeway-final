@@ -1,5 +1,6 @@
 import { FirebaseApp, getApps, initializeApp } from 'firebase/app';
 import { Auth, getAuth } from 'firebase/auth';
+import { Firestore, getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
     apiKey: "AIzaSyDrdpDcYYohButrfEyBNDZ7gPICITl3nNg",
@@ -22,6 +23,7 @@ if (existingApps.length === 0) {
 
 // Get Auth instance - explicitly use the initialized app
 const auth: Auth = getAuth(firebaseApp);
+const db: Firestore = getFirestore(firebaseApp);
 
-export { auth, firebaseApp };
+export { auth, db, firebaseApp };
 

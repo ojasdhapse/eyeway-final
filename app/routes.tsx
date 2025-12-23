@@ -1,49 +1,37 @@
+import { listSavedRoutes, SavedRoute } from '@/app/services/savedRoutes';
 import { EyewayColors } from '@/constants/theme';
+import { useAuth } from '@/hooks/useAuth';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import * as Speech from 'expo-speech';
-import React, { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-
-interface SavedRoute {
-    id: string;
-    name: string;
-    address: string;
-    icon: keyof typeof Ionicons.glyphMap;
-}
-
-const SAMPLE_ROUTES: SavedRoute[] = [
-    {
-        id: '1',
-        name: 'Home',
-        address: '123 Main Street, City',
-        icon: 'home',
-    },
-    {
-        id: '2',
-        name: 'Work',
-        address: '456 Office Plaza, Downtown',
-        icon: 'briefcase',
-    },
-    {
-        id: '3',
-        name: 'Grocery Store',
-        address: '789 Market Avenue',
-        icon: 'cart',
-    },
-    {
-        id: '4',
-        name: 'Park',
-        address: 'Central Park, North Side',
-        icon: 'leaf',
-    },
-];
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 export default function RoutesScreen() {
     const router = useRouter();
-    const [routes] = useState<SavedRoute[]>(SAMPLE_ROUTES);
+    const { user } = useAuth();
+    const [routes, setRoutes] = useState<SavedRoute[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        let mounted = true;
+        const load = async () => {
+            try {
+                const list = await listSavedRoutes(user?.uid);
+                if (mounted) setRoutes(list);
+            } catch (error) {
+                console.error('Failed to load saved routes', error);
+            } finally {
+                if (mounted) setIsLoading(false);
+            }
+        };
+        load();
+        return () => {
+            mounted = false;
+        };
+    }, [user]);
 
     const handleBack = () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -52,22 +40,20 @@ export default function RoutesScreen() {
 
     const handleRoutePress = (route: SavedRoute) => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        Speech.speak(`Navigate to ${route.name}, ${route.address}`, {
+        Speech.speak(`Starting navigation to ${route.name}`, {
             language: 'en',
             pitch: 1.0,
             rate: 0.9,
         });
-        // In a real app, this would start navigation
+        router.push({
+            pathname: '/navigation',
+            params: { destination: route.address, autoStart: 'true' },
+        });
     };
 
     const handleAddRoute = () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        Speech.speak('Add new route', {
-            language: 'en',
-            pitch: 1.0,
-            rate: 0.9,
-        });
-        // In a real app, this would open a form to add a new route
+        router.push('/navigation');
     };
 
     return (
@@ -92,12 +78,17 @@ export default function RoutesScreen() {
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
             >
-                {routes.length === 0 ? (
+                {isLoading ? (
+                    <View style={styles.emptyContainer}>
+                        <ActivityIndicator size="large" color={EyewayColors.accentBlue} />
+                        <Text style={styles.emptyText}>Loading saved routes...</Text>
+                    </View>
+                ) : routes.length === 0 ? (
                     <View style={styles.emptyContainer}>
                         <Ionicons name="bookmark-outline" size={64} color={EyewayColors.textSecondary} />
                         <Text style={styles.emptyText}>No saved routes yet</Text>
                         <Text style={styles.emptySubtext}>
-                            Tap the + button to add your first route
+                            Tap the + button or save a route after starting navigation
                         </Text>
                     </View>
                 ) : (
@@ -115,7 +106,7 @@ export default function RoutesScreen() {
                                 accessibilityHint={`Address: ${route.address}`}
                             >
                                 <View style={styles.routeIcon}>
-                                    <Ionicons name={route.icon} size={28} color={EyewayColors.accentBlue} />
+                                    <Ionicons name="location-outline" size={28} color={EyewayColors.accentBlue} />
                                 </View>
 
                                 <View style={styles.routeInfo}>

@@ -1,6 +1,6 @@
 import { biometricLogin } from '@/app/auth/biometricLogin';
 import { emailLogin, emailSignUp } from '@/app/auth/emailLogin';
-import { useGoogleLogin } from '@/app/auth/googleLogin';
+import { useGoogleAuth } from '@/app/auth/googleLogin';
 import { VoiceButton } from '@/components/voice-button';
 import { EyewayColors } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
@@ -32,7 +32,7 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [biometricAvailable, setBiometricAvailable] = useState(false);
-  const { login: googleLogin, loading: googleLoading } = useGoogleLogin();
+  const { promptAsync, handleGoogleResponse } = useGoogleAuth();
   const [emailMode, setEmailMode] = useState<'signin' | 'signup'>('signin');
 
 
@@ -100,26 +100,11 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      await googleLogin();
+      await promptAsync();
+      await handleGoogleResponse();
       // Success - the useAuth hook will detect the auth state change
     } catch (error: any) {
       console.error('Google login error:', error);
-      let errorMessage = 'Google login failed';
-      let errorTitle = 'Google Login Failed';
-      
-      if (error.message?.includes('cancelled')) {
-        errorMessage = 'Google login was cancelled';
-      } else if (error.message?.includes('operation-not-allowed')) {
-        errorTitle = 'Google Sign-In Not Enabled';
-        errorMessage = 'Google Sign-In is not enabled in Firebase Console.\n\nTo enable it:\n1. Go to Firebase Console\n2. Select your project\n3. Navigate to Authentication → Sign-in method\n4. Click on Google\n5. Enable it and add your OAuth client IDs\n6. Click Save';
-      } else if (error.message?.includes('access denied') || error.message?.includes('access_denied')) {
-        errorTitle = 'Access Denied';
-        errorMessage = 'Google OAuth access denied. This usually means:\n\n1. Google Sign-In is not enabled in Firebase Console\n2. OAuth client IDs are not configured correctly\n3. Redirect URI is not authorized in Google Cloud Console\n\nPlease check your Firebase and Google Cloud Console settings.';
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-      
-      Alert.alert(errorTitle, errorMessage);
     } finally {
       setLoading(false);
     }
@@ -226,92 +211,115 @@ export default function LoginScreen() {
             </View>
           </View>
           <Text style={styles.tagline}>Your voice-guided companion</Text>
-          <Text style={styles.welcomeText}>Sign in to continue</Text>
+          {/* <Text style={styles.welcomeText}>Sign in to continue</Text> */}
         </View>
 
         {/* Login Options */}
         <View style={styles.content}>
           {loginMethod === 'email' ? (
-            <View style={styles.emailForm}>
-              <TextInput
-                style={styles.input}
-                placeholder="Email"
-                placeholderTextColor={EyewayColors.textSecondary}
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="Password"
-                placeholderTextColor={EyewayColors.textSecondary}
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-              <Text style={styles.passwordHint}>Password must be at least 6 characters</Text>
-              <View style={styles.modeToggle}>
-                <Pressable
-                  style={[
-                    styles.modeButton,
-                    emailMode === 'signin' && styles.modeButtonActive,
-                  ]}
-                  onPress={() => setEmailMode('signin')}
-                >
-                  <Text
-                    style={[
-                      styles.modeButtonText,
-                      emailMode === 'signin' && styles.modeButtonTextActive,
-                    ]}
-                  >
-                    Sign In
-                  </Text>
-                </Pressable>
-                <Pressable
-                  style={[
-                    styles.modeButton,
-                    emailMode === 'signup' && styles.modeButtonActive,
-                  ]}
-                  onPress={() => setEmailMode('signup')}
-                >
-                  <Text
-                    style={[
-                      styles.modeButtonText,
-                      emailMode === 'signup' && styles.modeButtonTextActive,
-                    ]}
-                  >
-                    Sign Up
-                  </Text>
-                </Pressable>
+            <View style={styles.emailFormContainer}>
+              <View style={styles.emailFormHeader}>
+                <Text style={styles.formTitle}>
+                  {emailMode === 'signin' ? 'Sign In' : 'Create Account'}
+                </Text>
+                <Text style={styles.formSubtitle}>
+                  {emailMode === 'signin' 
+                    ? 'Welcome back! Sign in to continue' 
+                    : 'Join Eyeway to get started'}
+                </Text>
               </View>
-              <View style={styles.buttonRow}>
-                <Pressable
-                  style={styles.cancelButton}
-                  onPress={() => {
-                    setLoginMethod(null);
-                    setEmail('');
-                    setPassword('');
-                  }}
-                >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
-                </Pressable>
-                <VoiceButton
-                  title={emailMode === 'signin' ? 'Sign In' : 'Create Account'}
-                  onPress={handleEmailSubmit}
-                  variant="primary"
-                  style={styles.emailButton}
-                />
+
+              <View style={styles.emailForm}>
+                <View style={styles.inputWrapper}>
+                  <View style={styles.inputIconContainer}>
+                    <Ionicons name="mail-outline" size={20} color={EyewayColors.textSecondary} />
+                  </View>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Email address"
+                    placeholderTextColor={EyewayColors.textSecondary}
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                </View>
+
+                <View style={styles.inputWrapper}>
+                  <View style={styles.inputIconContainer}>
+                    <Ionicons name="lock-closed-outline" size={20} color={EyewayColors.textSecondary} />
+                  </View>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Password"
+                    placeholderTextColor={EyewayColors.textSecondary}
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                </View>
+
+                <Text style={styles.passwordHint}>
+                  Password must be at least 6 characters
+                </Text>
+
+                <View style={styles.actionColumn}>
+                  <VoiceButton
+                    title={emailMode === 'signin' ? 'Sign In' : 'Create Account'}
+                    onPress={handleEmailSubmit}
+                    variant="primary"
+                    style={styles.submitButton}
+                  />
+                  
+                  <View style={styles.divider}>
+                    <View style={styles.dividerLine} />
+                    <Text style={styles.dividerText}>or</Text>
+                    <View style={styles.dividerLine} />
+                  </View>
+
+                  <Pressable
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setEmailMode(emailMode === 'signin' ? 'signup' : 'signin');
+                    }}
+                    accessibilityRole="button"
+                    style={styles.linkButton}
+                  >
+                    <Text style={styles.linkText}>
+                      {emailMode === 'signin' 
+                        ? "Don't have an account? " 
+                        : 'Already have an account? '}
+                      <Text style={styles.linkTextBold}>
+                        {emailMode === 'signin' ? 'Sign Up' : 'Sign In'}
+                      </Text>
+                    </Text>
+                  </Pressable>
+
+                  <Pressable
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setLoginMethod(null);
+                      setEmail('');
+                      setPassword('');
+                    }}
+                    style={styles.backLink}
+                  >
+                    <Ionicons name="arrow-back" size={18} color={EyewayColors.textSecondary} />
+                    <Text style={styles.backLinkText}>Back to login options</Text>
+                  </Pressable>
+                </View>
               </View>
             </View>
           ) : (
             <View style={styles.buttonContainer}>
               {biometricAvailable && (
-                <View style={styles.buttonWithIcon}>
-                  <Ionicons name="finger-print" size={24} color={EyewayColors.textPrimary} style={styles.icon} />
+                <View style={styles.buttonCard}>
+                  <View style={styles.buttonIconWrapper}>
+                    <Ionicons name="finger-print" size={26} color={EyewayColors.accentBlue} />
+                  </View>
                   <VoiceButton
                     title="Fingerprint"
                     onPress={handleFingerprintLogin}
@@ -321,22 +329,28 @@ export default function LoginScreen() {
                 </View>
               )}
 
-              <View style={styles.buttonWithIcon}>
-                <Ionicons name="logo-google" size={24} color={EyewayColors.textPrimary} style={styles.icon} />
+              <View style={styles.buttonCard}>
+                <View style={styles.buttonIconWrapper}>
+                  <Ionicons name="logo-google" size={26} color={EyewayColors.accentBlue} />
+                </View>
                 <VoiceButton
                   title="Sign in with Google"
                   onPress={handleGoogleLogin}
                   variant="secondary"
                   style={styles.button}
-                  disabled={googleLoading}
                 />
               </View>
 
-              <View style={styles.buttonWithIcon}>
-                <Ionicons name="mail" size={24} color={EyewayColors.textPrimary} style={styles.icon} />
+              <View style={styles.buttonCard}>
+                <View style={styles.buttonIconWrapper}>
+                  <Ionicons name="mail" size={26} color={EyewayColors.accentBlue} />
+                </View>
                 <VoiceButton
                   title="Sign in with Email"
-                  onPress={() => setLoginMethod('email')}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setLoginMethod('email');
+                  }}
                   variant="secondary"
                   style={styles.button}
                 />
@@ -368,8 +382,8 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginTop: 80,
-    marginBottom: 40,
+    marginTop: 20,
+    marginBottom: 100,
     paddingHorizontal: 24,
   },
   logoContainer: {
@@ -408,82 +422,148 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 24,
     justifyContent: 'center',
+    paddingBottom: 120,
   },
   buttonContainer: {
-    gap: 16,
+    gap: 20,
   },
-  button: {
-    marginVertical: 4,
-  },
-  emailForm: {
-    gap: 16,
-  },
-  input: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
-    color: EyewayColors.textPrimary,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  buttonRow: {
+  buttonCard: {
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 8,
-  },
-  modeToggle: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  modeButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
+    gap: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 18,
+    padding: 4,
+    paddingRight: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
-  modeButtonActive: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderColor: 'rgba(255, 255, 255, 0.4)',
-  },
-  modeButtonText: {
-    color: EyewayColors.textSecondary,
-    fontWeight: '600',
-  },
-  modeButtonTextActive: {
-    color: EyewayColors.textPrimary,
-  },
-  passwordHint: {
-    color: EyewayColors.textSecondary,
-    fontSize: 12,
-    marginTop: -8,
-    marginBottom: 8,
-  },
-  cancelButton: {
-    flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
-    padding: 16,
+  buttonIconWrapper: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: 'rgba(91, 163, 245, 0.15)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  cancelButtonText: {
+  button: {
+    flex: 1,
+    marginVertical: 0,
+  },
+  emailFormContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 24,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  emailFormHeader: {
+    marginBottom: 28,
+    alignItems: 'center',
+  },
+  formTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
     color: EyewayColors.textPrimary,
-    fontSize: 16,
-    fontWeight: '600',
+    marginBottom: 8,
+    letterSpacing: 0.5,
   },
-  emailButton: {
-    flex: 2,
+  formSubtitle: {
+    fontSize: 15,
+    color: EyewayColors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 22,
   },
-  buttonWithIcon: {
+  emailForm: {
+    gap: 20,
+  },
+  inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    overflow: 'hidden',
   },
-  icon: {
-    marginLeft: 8,
+  inputIconContainer: {
+    paddingLeft: 18,
+    paddingRight: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  input: {
+    flex: 1,
+    paddingVertical: 18,
+    paddingRight: 18,
+    fontSize: 16,
+    color: EyewayColors.textPrimary,
+    fontWeight: '500',
+  },
+  actionColumn: {
+    gap: 16,
+    marginTop: 8,
+  },
+  submitButton: {
+    marginTop: 4,
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 8,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  dividerText: {
+    color: EyewayColors.textSecondary,
+    fontSize: 13,
+    fontWeight: '600',
+    marginHorizontal: 16,
+    letterSpacing: 0.5,
+  },
+  linkButton: {
+    alignItems: 'center',
+    paddingVertical: 4,
+    paddingHorizontal: 16,
+  },
+  linkText: {
+    color: EyewayColors.textSecondary,
+    fontSize: 15,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  linkTextBold: {
+    color: EyewayColors.accentBlue,
+    fontWeight: '700',
+  },
+  backLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 2,
+    gap: 6,
+    marginTop: 0,
+  },
+  backLinkText: {
+    color: EyewayColors.textSecondary,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  passwordHint: {
+    color: EyewayColors.textSecondary,
+    fontSize: 13,
+    marginTop: -4,
+    marginBottom: 4,
+    textAlign: 'center',
+    fontWeight: '500',
   },
 });
 
