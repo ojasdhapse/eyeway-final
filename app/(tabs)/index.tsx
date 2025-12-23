@@ -1,3 +1,4 @@
+import { auth } from '@/app/config/firebase.config';
 import { StatusIndicator } from '@/components/status-indicator';
 import { VoiceButton } from '@/components/voice-button';
 import { EyewayColors } from '@/constants/theme';
@@ -6,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Redirect, useRouter } from 'expo-router';
+import { signOut } from 'firebase/auth';
 import React, { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -43,6 +45,10 @@ export default function HomeScreen() {
   const handleSettings = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push('/modal');
+  };
+   const handleLogout = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    await signOut(auth);
   };
 
   return (
@@ -90,6 +96,12 @@ export default function HomeScreen() {
       {/* Footer with Status and Settings */}
       <View style={styles.footer}>
         <StatusIndicator status={status} />
+         <VoiceButton
+          title="Logout"
+          onPress={handleLogout}
+          variant="secondary"
+          style={styles.logoutButton}
+        />
 
         <Pressable
           onPress={handleSettings}
@@ -163,6 +175,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginTop: 20,
+  },
+  logoutButton: {
+    flex: 1,
+    marginRight: 12,
   },
   settingsButton: {
     width: 56,

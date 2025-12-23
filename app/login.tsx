@@ -9,6 +9,7 @@ import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { Redirect } from 'expo-router';
+import * as Speech from 'expo-speech';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
@@ -32,6 +33,36 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [biometricAvailable, setBiometricAvailable] = useState(false);
   const { login: googleLogin, loading: googleLoading } = useGoogleLogin();
+  const [emailMode, setEmailMode] = useState<'signin' | 'signup'>('signin');
+
+
+  const speakInvalidCredentials = () => {
+    Speech.stop();
+    Speech.speak('Invalid credentials. Please try again.', {
+      language: 'en',
+      pitch: 1.0,
+      rate: 0.9,
+    });
+  };
+
+  const speakAccountExists = () => {
+    Speech.stop();
+    Speech.speak('An account with this email already exists. Please sign in.', {
+      language: 'en',
+      pitch: 1.0,
+      rate: 0.9,
+    });
+  };
+
+ const speakAccountNotFound = () => {
+    Speech.stop();
+    Speech.speak('Account not found. Please create an account first.', {
+      language: 'en',
+      pitch: 1.0,
+      rate: 0.9,
+    });
+  };
+  
 
   React.useEffect(() => {
     checkBiometricAvailability();
@@ -94,7 +125,7 @@ export default function LoginScreen() {
     }
   };
 
-  const handleEmailLogin = async () => {
+  const handleEmailSubmit = async () => {
     if (!email.trim() || !password.trim()) {
       Alert.alert('Error', 'Please enter both email and password');
       return;
@@ -116,13 +147,17 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      // Try to sign in
-      const result = await emailLogin(email.trim(), password);
-      // Success - the useAuth hook will detect the auth state change
+      if (emailMode === 'signin') {
+        await emailLogin(email.trim(), password);
+      } else {
+        await emailSignUp(email.trim(), password);
+        Alert.alert('Welcome!', 'Your account has been created. You can now sign in.');
+        setEmailMode('signin');
+      }
     } catch (error: any) {
       console.error('Email login error:', error);
-      let errorMessage = 'Email login failed';
-      let errorTitle = 'Login Failed';
+      let errorMessage = emailMode === 'signin' ? 'Email login failed' : 'Sign up failed';
+      let errorTitle = emailMode === 'signin' ? 'Login Failed' : 'Sign Up Failed';
       
       // Handle Firebase Auth error codes
       if (error.code === 'auth/operation-not-allowed') {
@@ -134,31 +169,15 @@ export default function LoginScreen() {
         errorMessage = 'Invalid email address';
       } else if (error.code === 'auth/user-disabled') {
         errorMessage = 'This account has been disabled';
-      } else if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
-        // User doesn't exist, try to create account
-        try {
-          await emailSignUp(email.trim(), password);
-          Alert.alert('Welcome!', 'Your account has been created successfully.');
-          return; // Success, exit early
-        } catch (signUpError: any) {
-          console.error('Sign up error:', signUpError);
-          if (signUpError.code === 'auth/email-already-in-use') {
-            errorMessage = 'An account with this email already exists. Please try signing in again.';
-          } else if (signUpError.code === 'auth/weak-password') {
-            errorMessage = 'Password should be at least 6 characters';
-          } else if (signUpError.code === 'auth/operation-not-allowed') {
-            errorTitle = 'Authentication Not Enabled';
-            errorMessage = 'Email/Password authentication is not enabled in Firebase Console.\n\nTo enable it:\n1. Go to Firebase Console\n2. Select your project\n3. Navigate to Authentication → Sign-in method\n4. Click on Email/Password\n5. Enable it and click Save';
-            Alert.alert(errorTitle, errorMessage);
-            return;
-          } else {
-            errorMessage = signUpError.message || 'Failed to create account';
-          }
-          Alert.alert('Sign Up Failed', errorMessage);
-          return;
-        }
+      } else if (emailMode === 'signin' && (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential')) {
+        errorMessage = 'Account not found. Please create an account first.';
+        speakAccountNotFound();
+      } else if (emailMode === 'signup' && error.code === 'auth/email-already-in-use') {
+        errorMessage = 'An account with this email already exists. Please sign in.';
+        speakAccountExists();
       } else if (error.code === 'auth/wrong-password') {
         errorMessage = 'Incorrect password';
+        speakInvalidCredentials();
       } else if (error.code === 'auth/network-request-failed') {
         errorMessage = 'Network error. Please check your internet connection.';
       } else if (error.code === 'auth/too-many-requests') {
@@ -234,6 +253,41 @@ export default function LoginScreen() {
                 autoCapitalize="none"
                 autoCorrect={false}
               />
+              <Text style={styles.passwordHint}>Password must be at least 6 characters</Text>
+              <View style={styles.modeToggle}>
+                <Pressable
+                  style={[
+                    styles.modeButton,
+                    emailMode === 'signin' && styles.modeButtonActive,
+                  ]}
+                  onPress={() => setEmailMode('signin')}
+                >
+                  <Text
+                    style={[
+                      styles.modeButtonText,
+                      emailMode === 'signin' && styles.modeButtonTextActive,
+                    ]}
+                  >
+                    Sign In
+                  </Text>
+                </Pressable>
+                <Pressable
+                  style={[
+                    styles.modeButton,
+                    emailMode === 'signup' && styles.modeButtonActive,
+                  ]}
+                  onPress={() => setEmailMode('signup')}
+                >
+                  <Text
+                    style={[
+                      styles.modeButtonText,
+                      emailMode === 'signup' && styles.modeButtonTextActive,
+                    ]}
+                  >
+                    Sign Up
+                  </Text>
+                </Pressable>
+              </View>
               <View style={styles.buttonRow}>
                 <Pressable
                   style={styles.cancelButton}
@@ -246,8 +300,8 @@ export default function LoginScreen() {
                   <Text style={styles.cancelButtonText}>Cancel</Text>
                 </Pressable>
                 <VoiceButton
-                  title="Sign In"
-                  onPress={handleEmailLogin}
+                  title={emailMode === 'signin' ? 'Sign In' : 'Create Account'}
+                  onPress={handleEmailSubmit}
                   variant="primary"
                   style={styles.emailButton}
                 />
@@ -377,6 +431,35 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     marginTop: 8,
+  },
+  modeToggle: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  modeButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+  },
+  modeButtonActive: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderColor: 'rgba(255, 255, 255, 0.4)',
+  },
+  modeButtonText: {
+    color: EyewayColors.textSecondary,
+    fontWeight: '600',
+  },
+  modeButtonTextActive: {
+    color: EyewayColors.textPrimary,
+  },
+  passwordHint: {
+    color: EyewayColors.textSecondary,
+    fontSize: 12,
+    marginTop: -8,
+    marginBottom: 8,
   },
   cancelButton: {
     flex: 1,
