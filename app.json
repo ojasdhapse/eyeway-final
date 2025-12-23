@@ -38,6 +38,12 @@
             "backgroundColor": "#000000"
           }
         }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Eyeway to access your camera for obstacle detection."
+        }
       ]
     ],
     "experiments": {

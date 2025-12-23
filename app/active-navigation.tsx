@@ -1,3 +1,4 @@
+import { ObstacleDetector } from '@/components/obstacle-detector';
 import { EyewayColors } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -33,8 +34,11 @@ export default function ActiveNavigationScreen() {
     const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number } | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const locationSubscription = useRef<Location.LocationSubscription | null>(null);
+    const locationSubscription = useRef<Location.LocationSubscription | (() => void) | null>(null);
     const lastSpokenStep = useRef<number>(-1);
+
+    // Obstacle detection state
+    const [obstacleDetectionEnabled, setObstacleDetectionEnabled] = useState(true);
 
     // Parse navigation data from params
     useEffect(() => {
@@ -103,7 +107,20 @@ export default function ActiveNavigationScreen() {
         return () => {
             mounted = false;
             if (locationSubscription.current) {
-                locationSubscription.current.remove();
+                try {
+                    // Handle both old and new expo-location API
+                    const subscription = locationSubscription.current;
+                    if (typeof subscription === 'function') {
+                        // New API: subscription is a function
+                        subscription();
+                    } else if (subscription && 'remove' in subscription && typeof subscription.remove === 'function') {
+                        // Old API: subscription has remove method
+                        subscription.remove();
+                    }
+                } catch (error) {
+                    console.log('Location subscription cleanup error:', error);
+                }
+                locationSubscription.current = null;
             }
         };
     }, []);
@@ -157,12 +174,32 @@ export default function ActiveNavigationScreen() {
         return R * c;
     };
 
+
+    const cleanInstruction = (instruction: string): string => {
+        // Remove HTML tags (e.g., <b>north</b> -> north)
+        let cleaned = instruction.replace(/<[^>]*>/g, '');
+
+        // Remove extra whitespace
+        cleaned = cleaned.replace(/\s+/g, ' ').trim();
+
+        // Make more natural for speech
+        cleaned = cleaned
+            .replace(/&nbsp;/g, ' ')
+            .replace(/&amp;/g, 'and')
+            .replace(/&lt;/g, 'less than')
+            .replace(/&gt;/g, 'greater than');
+
+        return cleaned;
+    };
+
     const speakInstruction = (step: Step, distance: number) => {
         const distanceText = distance > 1000
             ? `In ${(distance / 1000).toFixed(1)} kilometers`
             : `In ${Math.round(distance)} meters`;
 
-        const instruction = `${distanceText}, ${step.instruction}`;
+        // Clean the instruction before speaking
+        const cleanedInstruction = cleanInstruction(step.instruction);
+        const instruction = `${distanceText}, ${cleanedInstruction}`;
 
         Speech.speak(instruction, {
             language: 'en',
@@ -174,6 +211,9 @@ export default function ActiveNavigationScreen() {
     };
 
     const handleDestinationReached = () => {
+        // Disable obstacle detection before exiting
+        setObstacleDetectionEnabled(false);
+
         Speech.speak('You have reached your destination', {
             language: 'en',
             pitch: 1.0,
@@ -188,6 +228,9 @@ export default function ActiveNavigationScreen() {
     };
 
     const handleEndNavigation = () => {
+        // Disable obstacle detection before exiting
+        setObstacleDetectionEnabled(false);
+
         Speech.speak('Navigation ended', {
             language: 'en',
             pitch: 1.0,
@@ -325,6 +368,9 @@ export default function ActiveNavigationScreen() {
                     ))}
                 </ScrollView>
             </View>
+
+            {/* Obstacle Detection Overlay (NEW - non-intrusive) */}
+            <ObstacleDetector enabled={obstacleDetectionEnabled} showCamera={false} />
         </LinearGradient>
     );
 }

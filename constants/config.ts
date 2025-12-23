@@ -17,7 +17,7 @@ const getApiUrl = () => {
     if (Platform.OS === 'android') {
         // IMPORTANT: Choose the right URL for your setup:
         // Option 1: For physical Android device (RECOMMENDED if emulator doesn't work)
-        url = 'http://192.168.1.8:8001';
+        url = 'http://192.168.1.2:8001';
 
         // Option 2: For Android Emulator (uncomment if using emulator)
         // url = 'http://10.0.2.2:8001';
@@ -38,9 +38,11 @@ const getApiUrl = () => {
 
 export const API_BASE_URL = getApiUrl();
 export const NAVIGATION_ENDPOINT = `${API_BASE_URL}/navigate`;
+export const VISION_ENDPOINT = `${API_BASE_URL}/vision/detect-obstacles`;
 
 console.log('📡 API Configuration loaded:', {
     platform: Platform.OS,
     baseUrl: API_BASE_URL,
     navigationEndpoint: NAVIGATION_ENDPOINT,
+    visionEndpoint: VISION_ENDPOINT,
 });

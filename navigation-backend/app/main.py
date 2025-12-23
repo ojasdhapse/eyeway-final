@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.navigate import router as navigate_router
+from app.api.vision import router as vision_router  # NEW: Vision API
 
 app = FastAPI(title="Navigation Backend", version="1.0")
 
@@ -13,4 +14,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Navigation router (existing, untouched)
 app.include_router(navigate_router)
+
+# Vision router (NEW: obstacle detection)
+app.include_router(vision_router)

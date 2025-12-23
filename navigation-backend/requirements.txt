@@ -4,3 +4,5 @@ requests
 streamlit
 pydantic-settings
 python-dotenv
+pillow
+python-multipart
