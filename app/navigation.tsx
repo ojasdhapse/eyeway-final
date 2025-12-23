@@ -1,6 +1,7 @@
 import { VoiceButton } from '@/components/voice-button';
 import { NAVIGATION_ENDPOINT } from '@/constants/config';
 import { EyewayColors } from '@/constants/theme';
+import { recordAndTranscribe } from '@/hooks/useSpeechToText';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -8,7 +9,7 @@ import * as Location from 'expo-location';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Speech from 'expo-speech';
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 export default function NavigationScreen() {
     const router = useRouter();
@@ -61,8 +62,8 @@ export default function NavigationScreen() {
         }
     }, [params.autoStart, params.destination, currentLocation]);
 
-    const handleStartNavigation = async (isAutoStart = false) => {
-        const targetDestination = params.destination && isAutoStart ? params.destination : destination;
+    const handleStartNavigation = async (isAutoStart = false, overrideDestination?: string) => {
+        const targetDestination = overrideDestination || (params.destination && isAutoStart ? params.destination : destination);
 
         if (!targetDestination?.trim()) {
             Speech.speak('Please enter a destination', {
@@ -153,14 +154,98 @@ export default function NavigationScreen() {
         }
     };
 
+    const activeRef = useRef(true);
+
+    useEffect(() => {
+        let isMounted = true;
+        activeRef.current = true;
+
+        const loop = async () => {
+            // Initial prompt
+            Speech.speak('Where would you like to go?', {
+                language: 'en',
+                rate: 0.9,
+            });
+            await new Promise((r) => setTimeout(r, 1500));
+
+            while (activeRef.current && isMounted) {
+                // If destination is already set, maybe we listen for "Start" or "Clear"?
+                // For now, let's just listen for destination if empty, or new destination if full.
+
+                let text: string | null = null;
+                if (Platform.OS === 'web') {
+                    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+                    if (SpeechRecognition) {
+                        try {
+                            text = await new Promise((resolve) => {
+                                const recog = new SpeechRecognition();
+                                recog.lang = 'en-US';
+                                recog.onresult = (e: any) => resolve(e.results[0][0].transcript);
+                                recog.onerror = () => resolve(null);
+                                recog.start();
+                            });
+                        } catch (e) {
+                            text = null;
+                        }
+                    }
+                } else {
+                    text = await recordAndTranscribe();
+                }
+
+                if (!text) {
+                    await new Promise((r) => setTimeout(r, 100)); // Short wait
+                    continue;
+                }
+
+                const lowerText = text.toLowerCase();
+
+                // Check for commands
+                if (lowerText.includes('start navigation') || (lowerText.includes('start') && destination)) {
+                    handleStartNavigation();
+                    break;
+                }
+
+                if (lowerText.includes('go back') || lowerText.includes('back')) {
+                    handleBack();
+                    break;
+                }
+
+                // Treat as destination
+                setDestination(text);
+                Speech.speak(`Heard ${text}. Starting navigation.`, {
+                    language: 'en',
+                    rate: 0.9,
+                });
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+                // Set the destination immediately so handleStartNavigation can use it
+                // We need to pass it directly because state update might be slow
+                setTimeout(() => {
+                    handleStartNavigation(false, text); // Pass text directly
+                }, 2000);
+
+                break; // Exit loop since we are starting navigation
+            }
+        };
+
+        const timer = setTimeout(() => {
+            loop();
+        }, 1000); // Slight delay on mount before starting loop
+
+        return () => {
+            isMounted = false;
+            activeRef.current = false;
+            clearTimeout(timer);
+            Speech.stop();
+        };
+    }, []); // Run on mount
+
     const handleVoiceInput = () => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        Speech.speak('Voice input activated. Please speak your destination.', {
+        // Voice input is now automatic, but button can restart it or provide feedback
+        Speech.speak('Listening for destination...', {
             language: 'en',
-            pitch: 1.0,
             rate: 0.9,
         });
-        // In a real app, this would activate speech recognition
     };
 
     const handleBack = () => {

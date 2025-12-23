@@ -53,6 +53,10 @@ export default function RoutesScreen() {
 
     const handleAddRoute = () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        Speech.speak('Add a new route. Opening navigation.', {
+            language: 'en',
+            rate: 0.9,
+        });
         router.push('/navigation');
     };
 

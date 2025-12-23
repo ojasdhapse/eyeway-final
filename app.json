@@ -46,6 +46,12 @@
         {
           "cameraPermission": "Allow Eyeway to access your camera for obstacle detection."
         }
+      ],
+      [
+        "expo-av",
+        {
+          "microphonePermission": "Allow Eyeway to access your microphone for voice commands."
+        }
       ]
     ],
     "experiments": {
