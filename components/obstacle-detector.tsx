@@ -16,7 +16,7 @@ export function ObstacleDetector({
     showCamera = false,
     onObstacleDetected,
 }: ObstacleDetectorProps) {
-    const { obstacles, isDetecting, hasPermission, error, cameraRef } = useObstacleDetection({
+    const { obstacles, isDetecting, hasPermission, isCameraReady, error, cameraRef, onCameraReady } = useObstacleDetection({
         enabled,
         onObstacleDetected,
         announceObstacles: true,
@@ -49,6 +49,7 @@ export function ObstacleDetector({
                 ref={cameraRef}
                 style={showCamera ? styles.cameraVisible : styles.cameraHidden}
                 facing="back"
+                onCameraReady={onCameraReady}
             />
 
             {/* Obstacle Alert Overlay */}
@@ -80,6 +81,13 @@ export function ObstacleDetector({
                 </View>
             )}
 
+            {/* Camera Status Indicator (Debug only) */}
+            {__DEV__ && !isCameraReady && (
+                <View style={styles.debugIndicator}>
+                    <Text style={styles.debugText}>📷 Camera initializing...</Text>
+                </View>
+            )}
+
             {/* Error Indicator (Silent - only visible in debug) */}
             {__DEV__ && error && (
                 <View style={styles.errorIndicator}>
@@ -99,9 +107,12 @@ const styles = StyleSheet.create({
         height: 150, // Small area for camera
     },
     cameraHidden: {
-        width: 1,
-        height: 1,
-        opacity: 0,
+        position: 'absolute',
+        left: -1000, // Position off-screen
+        top: 0,
+        width: 100, // Larger size for proper initialization
+        height: 100,
+        opacity: 0, // Still invisible
     },
     cameraVisible: {
         flex: 1,
@@ -164,6 +175,20 @@ const styles = StyleSheet.create({
         color: EyewayColors.textPrimary,
         fontSize: 12,
         fontWeight: '600',
+    },
+    debugIndicator: {
+        position: 'absolute',
+        top: 50,
+        left: 8,
+        right: 8,
+        backgroundColor: 'rgba(0, 122, 255, 0.9)',
+        padding: 8,
+        borderRadius: 8,
+    },
+    debugText: {
+        color: EyewayColors.textPrimary,
+        fontSize: 10,
+        textAlign: 'center',
     },
     errorIndicator: {
         position: 'absolute',

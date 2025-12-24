@@ -91,3 +91,4 @@ build/
 
 # Environment files
 .env
+voice.md

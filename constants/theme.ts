@@ -52,6 +52,7 @@ export const EyewayColors = {
 
   // Accent
   accentBlue: '#5BA3F5',
+  neonBlue: '#00D9FF',
 
   // Error
   error: '#F44336',

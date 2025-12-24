@@ -54,7 +54,6 @@ export function VoiceButton({
             accessibilityHint={`Tap to ${title.toLowerCase()}`}
             disabled={disabled}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            delayPressIn={0}
         >
             <Text style={[styles.buttonText, disabled && styles.disabledText]}>{title}</Text>
         </Pressable>
@@ -70,18 +69,20 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         minHeight: 64,
         width: '100%',
+        borderWidth: 2,
+        borderColor: EyewayColors.neonBlue,
     },
     primaryButton: {
-        backgroundColor: EyewayColors.primaryButton,
+        backgroundColor: 'rgba(91, 163, 245, 0.15)',
     },
     primaryButtonPressed: {
-        backgroundColor: EyewayColors.primaryButtonHover,
+        backgroundColor: 'rgba(91, 163, 245, 0.3)',
     },
     secondaryButton: {
-        backgroundColor: EyewayColors.secondaryButton,
+        backgroundColor: 'rgba(58, 74, 90, 0.25)',
     },
     secondaryButtonPressed: {
-        backgroundColor: EyewayColors.secondaryButtonHover,
+        backgroundColor: 'rgba(74, 90, 106, 0.4)',
     },
     buttonText: {
         color: EyewayColors.textPrimary,

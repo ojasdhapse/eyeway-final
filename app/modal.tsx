@@ -1,12 +1,11 @@
+import AppBackground from '@/components/app-background';
 import { EyewayColors } from '@/constants/theme';
 import { useVoiceTurnManager } from '@/hooks/useVoiceTurnManager';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { LinearGradient } from 'expo-linear-gradient';
-import AppBackground from '@/components/app-background';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function ModalScreen() {
   const router = useRouter();
@@ -75,13 +74,33 @@ export default function ModalScreen() {
         <View style={{ width: 28 }} />
       </View>
 
-      <View style={styles.content}>
-        <View style={styles.messageContainer}>
-          <Ionicons name="settings-outline" size={64} color={EyewayColors.textSecondary} />
-          <Text style={styles.messageText}>Settings coming soon</Text>
-          <Text style={styles.subText}>Additional features will be added here</Text>
+      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+        <View style={styles.aboutContainer}>
+          <Text style={styles.sectionTitle}>About Eyeway</Text>
+
+          <Text style={styles.paragraph}>
+            Eyeway is an accessible navigation app designed to help blind and visually impaired people move safely, confidently, and independently.
+          </Text>
+
+          <Text style={styles.paragraph}>
+            Getting around cities can be challenging when navigation depends heavily on visual maps and screens. Eyeway changes that by focusing on clear guidance, real-time location awareness, and simplicity, helping users understand where they are and where they need to go without relying on visuals.
+          </Text>
+
+          <Text style={styles.subheading}>Features</Text>
+          <Text style={styles.paragraph}>
+            The app provides step-by-step navigation, instant location awareness, and the ability to save frequently used routes for quick access. Whether you are walking through familiar streets or exploring a new area, Eyeway supports you with reliable directions and safety-focused features.
+          </Text>
+
+          <Text style={styles.paragraph}>
+            Eyeway also offers secure and easy sign-in options, including fingerprint, so your saved routes and preferences are always available when you need them.
+          </Text>
+
+          <Text style={styles.subheading}>Our Goal</Text>
+          <Text style={styles.paragraph}>
+            Our goal is simple: to make everyday navigation easier, safer, and more inclusive, while giving users the confidence to travel independently.
+          </Text>
         </View>
-      </View>
+      </ScrollView>
 
       {/* Floating Voice Command Button */}
       <TouchableOpacity
@@ -131,21 +150,31 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
-  messageContainer: {
-    alignItems: 'center',
-    gap: 16,
+  contentContainer: {
+    paddingBottom: 100,
   },
-  messageText: {
-    fontSize: 20,
+  aboutContainer: {
+    paddingHorizontal: 4,
+  },
+  sectionTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: EyewayColors.textPrimary,
+    marginBottom: 16,
+  },
+  subheading: {
+    fontSize: 18,
     fontWeight: '600',
     color: EyewayColors.textPrimary,
+    marginTop: 16,
+    marginBottom: 8,
   },
-  subText: {
+  paragraph: {
     fontSize: 16,
     color: EyewayColors.textSecondary,
+    lineHeight: 24,
+    marginBottom: 12,
   },
   floatingVoiceButton: {
     position: 'absolute',

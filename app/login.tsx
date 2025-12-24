@@ -1,12 +1,11 @@
 import { biometricLogin } from '@/app/auth/biometricLogin';
 import { emailLogin, emailSignUp } from '@/app/auth/emailLogin';
-import { useGoogleAuth } from '@/app/auth/googleLogin';
+import AppBackground from '@/components/app-background';
 import { VoiceButton } from '@/components/voice-button';
 import { EyewayColors } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { LinearGradient } from 'expo-linear-gradient';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { Redirect } from 'expo-router';
 import * as Speech from 'expo-speech';
@@ -32,7 +31,6 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [biometricAvailable, setBiometricAvailable] = useState(false);
-  const { promptAsync, handleGoogleResponse } = useGoogleAuth();
   const [emailMode, setEmailMode] = useState<'signin' | 'signup'>('signin');
 
 
@@ -54,7 +52,7 @@ export default function LoginScreen() {
     });
   };
 
- const speakAccountNotFound = () => {
+  const speakAccountNotFound = () => {
     Speech.stop();
     Speech.speak('Account not found. Please create an account first.', {
       language: 'en',
@@ -62,7 +60,7 @@ export default function LoginScreen() {
       rate: 0.9,
     });
   };
-  
+
 
   React.useEffect(() => {
     checkBiometricAvailability();
@@ -96,19 +94,7 @@ export default function LoginScreen() {
     }
   };
 
-  const handleGoogleLogin = async () => {
-    setLoading(true);
-    try {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      await promptAsync();
-      await handleGoogleResponse();
-      // Success - the useAuth hook will detect the auth state change
-    } catch (error: any) {
-      console.error('Google login error:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+
 
   const handleEmailSubmit = async () => {
     if (!email.trim() || !password.trim()) {
@@ -143,7 +129,7 @@ export default function LoginScreen() {
       console.error('Email login error:', error);
       let errorMessage = emailMode === 'signin' ? 'Email login failed' : 'Sign up failed';
       let errorTitle = emailMode === 'signin' ? 'Login Failed' : 'Sign Up Failed';
-      
+
       // Handle Firebase Auth error codes
       if (error.code === 'auth/operation-not-allowed') {
         errorTitle = 'Authentication Not Enabled';
@@ -172,7 +158,7 @@ export default function LoginScreen() {
       } else if (error.code) {
         errorMessage = `Error: ${error.code}. Please check Firebase Console settings.`;
       }
-      
+
       Alert.alert(errorTitle, errorMessage);
     } finally {
       setLoading(false);
@@ -181,23 +167,17 @@ export default function LoginScreen() {
 
   if (authLoading || loading) {
     return (
-      <LinearGradient
-        colors={[EyewayColors.backgroundStart, EyewayColors.backgroundEnd]}
-        style={styles.container}
-      >
+      <AppBackground contentContainerStyle={{ justifyContent: 'center', alignItems: 'center' }}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={EyewayColors.accentBlue} />
           <Text style={styles.loadingText}>Signing in...</Text>
         </View>
-      </LinearGradient>
+      </AppBackground>
     );
   }
 
   return (
-    <LinearGradient
-      colors={[EyewayColors.backgroundStart, EyewayColors.backgroundEnd]}
-      style={styles.container}
-    >
+    <AppBackground contentContainerStyle={{ paddingTop: 20 }}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
@@ -223,8 +203,8 @@ export default function LoginScreen() {
                   {emailMode === 'signin' ? 'Sign In' : 'Create Account'}
                 </Text>
                 <Text style={styles.formSubtitle}>
-                  {emailMode === 'signin' 
-                    ? 'Welcome back! Sign in to continue' 
+                  {emailMode === 'signin'
+                    ? 'Welcome back! Sign in to continue'
                     : 'Join Eyeway to get started'}
                 </Text>
               </View>
@@ -273,7 +253,7 @@ export default function LoginScreen() {
                     variant="primary"
                     style={styles.submitButton}
                   />
-                  
+
                   <View style={styles.divider}>
                     <View style={styles.dividerLine} />
                     <Text style={styles.dividerText}>or</Text>
@@ -289,8 +269,8 @@ export default function LoginScreen() {
                     style={styles.linkButton}
                   >
                     <Text style={styles.linkText}>
-                      {emailMode === 'signin' 
-                        ? "Don't have an account? " 
+                      {emailMode === 'signin'
+                        ? "Don't have an account? "
                         : 'Already have an account? '}
                       <Text style={styles.linkTextBold}>
                         {emailMode === 'signin' ? 'Sign Up' : 'Sign In'}
@@ -329,17 +309,7 @@ export default function LoginScreen() {
                 </View>
               )}
 
-              <View style={styles.buttonCard}>
-                <View style={styles.buttonIconWrapper}>
-                  <Ionicons name="logo-google" size={26} color={EyewayColors.accentBlue} />
-                </View>
-                <VoiceButton
-                  title="Sign in with Google"
-                  onPress={handleGoogleLogin}
-                  variant="secondary"
-                  style={styles.button}
-                />
-              </View>
+
 
               <View style={styles.buttonCard}>
                 <View style={styles.buttonIconWrapper}>
@@ -359,7 +329,7 @@ export default function LoginScreen() {
           )}
         </View>
       </KeyboardAvoidingView>
-    </LinearGradient>
+    </AppBackground>
   );
 }
 

@@ -38,6 +38,7 @@ export function useObstacleDetection(options: UseObstacleDetectionOptions = {}) 
     const [obstacles, setObstacles] = useState<Obstacle[]>([]);
     const [isDetecting, setIsDetecting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [isCameraReady, setIsCameraReady] = useState(false);
 
     // Use the new camera permissions hook
     const [permission, requestPermission] = useCameraPermissions();
@@ -72,10 +73,19 @@ export function useObstacleDetection(options: UseObstacleDetectionOptions = {}) 
         })();
     }, [permission]);
 
+    // Camera ready callback
+    const handleCameraReady = useCallback(() => {
+        console.log('📷 [ObstacleDetection] Camera is ready');
+        setIsCameraReady(true);
+    }, []);
+
     // Capture and analyze frame
     const captureAndAnalyze = useCallback(async () => {
-        // Skip if not enabled, no permission, already detecting, or camera not ready
-        if (!enabled || !permission?.granted || isDetecting || !cameraRef.current) {
+        // Skip if not enabled, no permission, already detecting, camera not ready, or camera not initialized
+        if (!enabled || !permission?.granted || isDetecting || !cameraRef.current || !isCameraReady) {
+            if (!isCameraReady && enabled && permission?.granted) {
+                console.log('📷 [ObstacleDetection] Waiting for camera to be ready...');
+            }
             return;
         }
 
@@ -88,6 +98,7 @@ export function useObstacleDetection(options: UseObstacleDetectionOptions = {}) 
             // Capture frame from camera using CameraView API
             if (!cameraRef.current || !cameraRef.current.takePictureAsync) {
                 console.warn('📷 [ObstacleDetection] Camera not ready or takePictureAsync not available');
+                console.warn('📷 [ObstacleDetection] Camera state - Ready:', isCameraReady, 'Ref exists:', !!cameraRef.current);
                 return;
             }
 
@@ -140,6 +151,7 @@ export function useObstacleDetection(options: UseObstacleDetectionOptions = {}) 
         } catch (err) {
             // Fail silently - don't disrupt navigation
             console.error('🔍 Obstacle detection error:', err);
+            console.error('🔍 Camera state - Ready:', isCameraReady, 'Ref:', !!cameraRef.current, 'Permission:', permission?.granted);
             setError(err instanceof Error ? err.message : 'Detection failed');
 
             // Clear obstacles on error
@@ -147,7 +159,7 @@ export function useObstacleDetection(options: UseObstacleDetectionOptions = {}) 
         } finally {
             setIsDetecting(false);
         }
-    }, [enabled, permission, isDetecting, onObstacleDetected, announceObstacles]);
+    }, [enabled, permission, isDetecting, isCameraReady, onObstacleDetected, announceObstacles]);
 
     // Announce obstacles with cooldown
     const announceObstaclesIfNeeded = useCallback((obstacles: Obstacle[]) => {
@@ -216,8 +228,10 @@ export function useObstacleDetection(options: UseObstacleDetectionOptions = {}) 
         obstacles,
         isDetecting,
         hasPermission: permission?.granted ?? false,
+        isCameraReady,
         error,
         cameraRef,
+        onCameraReady: handleCameraReady,
         captureAndAnalyze, // Manual trigger if needed
     };
 }

@@ -1,14 +1,13 @@
 import { auth } from '@/app/config/firebase.config';
+import AppBackground from '@/components/app-background';
 import { StatusIndicator } from '@/components/status-indicator';
 import { VoiceButton } from '@/components/voice-button';
-import AppBackground from '@/components/app-background';
 import { EyewayColors } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
 import { useVoiceTurnManager } from '@/hooks/useVoiceTurnManager';
 import { parseVoiceCommand } from '@/hooks/voiceCommands';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Redirect, useRouter } from 'expo-router';
 import { signOut } from 'firebase/auth';
 import React, { useEffect, useRef, useState } from 'react';
@@ -202,7 +201,7 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 40,
+    marginBottom: 80,
     width: '100%',
   },
   logoContainer: {
@@ -238,7 +237,6 @@ const styles = StyleSheet.create({
     gap: 16,
     alignItems: 'center',
     paddingHorizontal: 8,
-    alignItems: 'center',
   },
   button: {
     marginVertical: 4,
@@ -250,7 +248,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 8, // reduced from 20 to move buttons up
+    marginTop: 0,
+    marginBottom: 20,
     gap: 12,
     flexWrap: 'wrap',
   },
@@ -260,8 +259,8 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   logoutButton: {
-    minWidth: 120,
-    maxWidth: 180,
+    minWidth: 240,
+    maxWidth: 320,
     marginRight: 0,
     alignSelf: 'center',
   },

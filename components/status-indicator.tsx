@@ -43,10 +43,11 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: EyewayColors.secondaryButton,
-        paddingVertical: 12,
+        paddingVertical: 16,
         paddingHorizontal: 20,
-        borderRadius: 24,
+        borderRadius: 28,
         gap: 10,
+        minHeight: 56,
     },
     dot: {
         width: 12,

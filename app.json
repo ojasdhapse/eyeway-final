@@ -21,7 +21,12 @@
       },
       "package": "com.x123claude.eyeway",
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ]
     },
     "web": {
       "output": "static",
@@ -59,7 +64,11 @@
       "reactCompiler": true
     },
     "extra": {
-      "apiUrl": "https://navigation-backend-r44z.onrender.com"
+      "apiUrl": "https://navigation-backend-r44z.onrender.com",
+      "router": {},
+      "eas": {
+        "projectId": "8c56a445-fd4b-4a2c-80aa-bb47932fac50"
+      }
     }
   }
 }
