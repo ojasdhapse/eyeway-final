@@ -1,19 +1,25 @@
 import { listSavedRoutes, SavedRoute } from '@/app/services/savedRoutes';
 import { EyewayColors } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
+import { useVoiceTurnManager } from '@/hooks/useVoiceTurnManager';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Speech from 'expo-speech';
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function RoutesScreen() {
     const router = useRouter();
+    const params = useLocalSearchParams<{ voiceInitiated?: string }>();
     const { user } = useAuth();
     const [routes, setRoutes] = useState<SavedRoute[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isListening, setIsListening] = useState(false);
+    const { speak } = useVoiceTurnManager();
+    const hasReadRoutes = useRef(false);
+    const { speakThenListen } = useVoiceTurnManager();
 
     useEffect(() => {
         let mounted = true;
@@ -33,9 +39,74 @@ export default function RoutesScreen() {
         };
     }, [user]);
 
+    // Voice-initiated route reading
+    useEffect(() => {
+        if (
+            params.voiceInitiated === 'true' &&
+            !isLoading &&
+            !hasReadRoutes.current
+        ) {
+            hasReadRoutes.current = true;
+
+            const readRoutesAloud = async () => {
+                // Small delay to let screen render
+                await new Promise(r => setTimeout(r, 500));
+
+                if (routes.length === 0) {
+                    await speak('You have no saved routes yet. You can save routes after starting navigation.');
+                } else {
+                    await speak(`You have ${routes.length} saved ${routes.length === 1 ? 'route' : 'routes'}.`);
+
+                    // Read each route one by one with pauses
+                    for (let i = 0; i < routes.length; i++) {
+                        const route = routes[i];
+                        await new Promise(r => setTimeout(r, 400)); // Pause between routes
+                        await speak(`Route ${i + 1}: ${route.name}. Address: ${route.address}`);
+                    }
+
+                    await new Promise(r => setTimeout(r, 600));
+                    await speak('Tap any route to start navigation, or say go back to return.');
+                }
+
+                // Listen for 'go back' command
+                const response = await speakThenListen('', 4000);
+                if (response && response.toLowerCase().includes('back')) {
+                    await speak('Going back to home');
+                    router.push('/(tabs)');
+                }
+            };
+
+            readRoutesAloud();
+        }
+    }, [params.voiceInitiated, isLoading, routes]);
+
     const handleBack = () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         router.back();
+    };
+
+    const handleVoiceCommand = async () => {
+        if (isListening) return;
+
+        setIsListening(true);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+        try {
+            const response = await speakThenListen('Listening for your command', 4000);
+
+            if (response) {
+                const lowerResponse = response.toLowerCase();
+
+                if (lowerResponse.includes('back') || lowerResponse.includes('return')) {
+                    await speak('Going back to home');
+                    router.push('/(tabs)');
+                } else {
+                    await speak('Command not recognized. You can say go back.');
+                }
+            }
+        } finally {
+            setIsListening(false);
+        }
     };
 
     const handleRoutePress = (route: SavedRoute) => {
@@ -128,6 +199,24 @@ export default function RoutesScreen() {
                     </View>
                 )}
             </ScrollView>
+
+            {/* Floating Voice Command Button */}
+            <TouchableOpacity
+                style={styles.floatingVoiceButton}
+                onPress={handleVoiceCommand}
+                disabled={isListening}
+                accessibilityLabel="Voice command button"
+                accessibilityHint="Tap to give a voice command like go back"
+            >
+                <Ionicons
+                    name={isListening ? "mic" : "mic-outline"}
+                    size={28}
+                    color={EyewayColors.textPrimary}
+                />
+                {isListening && (
+                    <View style={styles.listeningIndicator} />
+                )}
+            </TouchableOpacity>
         </LinearGradient>
     );
 }
@@ -225,5 +314,30 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: EyewayColors.textSecondary,
         lineHeight: 20,
+    },
+    floatingVoiceButton: {
+        position: 'absolute',
+        bottom: 30,
+        right: 24,
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        backgroundColor: EyewayColors.accentBlue,
+        alignItems: 'center',
+        justifyContent: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 8,
+    },
+    listeningIndicator: {
+        position: 'absolute',
+        width: 72,
+        height: 72,
+        borderRadius: 36,
+        borderWidth: 3,
+        borderColor: EyewayColors.accentBlue,
+        opacity: 0.6,
     },
 });

@@ -53,6 +53,8 @@ export function VoiceButton({
             accessibilityLabel={accessibilityLabel || title}
             accessibilityHint={`Tap to ${title.toLowerCase()}`}
             disabled={disabled}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            delayPressIn={0}
         >
             <Text style={[styles.buttonText, disabled && styles.disabledText]}>{title}</Text>
         </Pressable>

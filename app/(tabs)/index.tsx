@@ -3,20 +3,94 @@ import { StatusIndicator } from '@/components/status-indicator';
 import { VoiceButton } from '@/components/voice-button';
 import { EyewayColors } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
+import { useVoiceTurnManager } from '@/hooks/useVoiceTurnManager';
+import { parseVoiceCommand } from '@/hooks/voiceCommands';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Redirect, useRouter } from 'expo-router';
 import { signOut } from 'firebase/auth';
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 
 export default function HomeScreen() {
-  const { token, loading } = useAuth(); 
-  
+  const { token, loading } = useAuth();
+
   const router = useRouter();
   const [status, setStatus] = useState<'ready' | 'navigating' | 'error'>('ready');
+  const { speakThenListen, speak } = useVoiceTurnManager();
+  const isActiveRef = useRef(true);
+
+  // Continuous voice command loop - repeats every 20 seconds
+  useEffect(() => {
+    if (!loading && token) {
+      isActiveRef.current = true;
+
+      const runVoiceCycle = async () => {
+        // Initial delay to let screen render on first load
+        await new Promise(r => setTimeout(r, 500));
+
+        while (isActiveRef.current) {
+          try {
+            setStatus('ready');
+            const response = await speakThenListen(
+              'You can speak a command now. Say start navigation, saved routes, where am I, or settings.'
+            );
+
+            if (response) {
+              console.log('Voice command:', response);
+              const command = parseVoiceCommand(response);
+
+              if (command) {
+                setStatus('navigating');
+                await speak(`Opening ${command.replace(/_/g, ' ').toLowerCase()}`);
+
+                switch (command) {
+                  case 'START_NAVIGATION':
+                    router.push({ pathname: '/navigation', params: { voiceInitiated: 'true' } });
+                    break;
+                  case 'WHERE_AM_I':
+                    router.push({ pathname: '/location', params: { voiceInitiated: 'true' } });
+                    break;
+                  case 'SAVED_ROUTES':
+                    router.push({ pathname: '/routes', params: { voiceInitiated: 'true' } });
+                    break;
+                  case 'SETTINGS':
+                    router.push('/modal');
+                    break;
+                }
+                // After navigation, exit the loop
+                break;
+              } else {
+                setStatus('error');
+                await speak(`Command not recognized. I heard: ${response}. Please try again.`);
+                setStatus('ready');
+              }
+            }
+
+            // Wait 20 seconds before next cycle (only if still active and no navigation happened)
+            if (isActiveRef.current) {
+              await new Promise(r => setTimeout(r, 20000));
+            }
+          } catch (error) {
+            console.error('Voice cycle error:', error);
+            // Wait before retry on error
+            if (isActiveRef.current) {
+              await new Promise(r => setTimeout(r, 5000));
+            }
+          }
+        }
+      };
+
+      runVoiceCycle();
+
+      return () => {
+        isActiveRef.current = false;
+      };
+    }
+  }, [loading, token]);
+
   if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -46,7 +120,7 @@ export default function HomeScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push('/modal');
   };
-   const handleLogout = async () => {
+  const handleLogout = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     await signOut(auth);
   };
@@ -96,7 +170,7 @@ export default function HomeScreen() {
       {/* Footer with Status and Settings */}
       <View style={styles.footer}>
         <StatusIndicator status={status} />
-         <VoiceButton
+        <VoiceButton
           title="Logout"
           onPress={handleLogout}
           variant="secondary"

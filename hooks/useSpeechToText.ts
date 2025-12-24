@@ -27,6 +27,8 @@ export async function recordAndTranscribe(): Promise<string | null> {
         await Audio.setAudioModeAsync({
             allowsRecordingIOS: true,
             playsInSilentModeIOS: true,
+            shouldDuckAndroid: true, // Lower other audio during recording
+            playThroughEarpieceAndroid: false,
         });
 
         // Step 1: Record audio for 4 seconds

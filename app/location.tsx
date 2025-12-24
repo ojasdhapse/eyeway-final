@@ -1,19 +1,24 @@
 import { EyewayColors } from '@/constants/theme';
+import { useVoiceTurnManager } from '@/hooks/useVoiceTurnManager';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Speech from 'expo-speech';
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function LocationScreen() {
     const router = useRouter();
+    const params = useLocalSearchParams<{ voiceInitiated?: string }>();
     const [location, setLocation] = useState<Location.LocationObject | null>(null);
     const [address, setAddress] = useState<string>('');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string>('');
+    const [isListening, setIsListening] = useState(false);
+    const { speakThenListen, speak } = useVoiceTurnManager();
+    const hasListenedForBack = useRef(false);
 
     useEffect(() => {
         getCurrentLocation();
@@ -67,6 +72,62 @@ export default function LocationScreen() {
                 rate: 0.9,
             });
             setLoading(false);
+        }
+    };
+
+    // Voice-initiated listening for 'go back'
+    useEffect(() => {
+        if (
+            params.voiceInitiated === 'true' &&
+            !loading &&
+            address &&
+            !hasListenedForBack.current
+        ) {
+            hasListenedForBack.current = true;
+
+            const listenForBack = async () => {
+                // Wait for location announcement to complete
+                await new Promise(r => setTimeout(r, 2500));
+
+                // Prompt and listen for go back
+                const response = await speakThenListen('Say go back to return to home', 4000);
+                if (response && response.toLowerCase().includes('back')) {
+                    Speech.speak('Going back to home', {
+                        language: 'en',
+                        pitch: 1.0,
+                        rate: 0.9,
+                    });
+                    router.push('/(tabs)');
+                }
+            };
+
+            listenForBack();
+        }
+    }, [params.voiceInitiated, loading, address]);
+
+    const handleVoiceCommand = async () => {
+        if (isListening) return;
+
+        setIsListening(true);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+        try {
+            const response = await speakThenListen('Listening for your command', 4000);
+
+            if (response) {
+                const lowerResponse = response.toLowerCase();
+
+                if (lowerResponse.includes('back') || lowerResponse.includes('return')) {
+                    await speak('Going back to home');
+                    router.push('/(tabs)');
+                } else if (lowerResponse.includes('repeat') || lowerResponse.includes('again')) {
+                    handleRepeat();
+                } else {
+                    await speak('Command not recognized. You can say go back or repeat.');
+                }
+            }
+        } finally {
+            setIsListening(false);
         }
     };
 
@@ -152,6 +213,24 @@ export default function LocationScreen() {
                     </View>
                 )}
             </View>
+
+            {/* Floating Voice Command Button */}
+            <TouchableOpacity
+                style={styles.floatingVoiceButton}
+                onPress={handleVoiceCommand}
+                disabled={isListening}
+                accessibilityLabel="Voice command button"
+                accessibilityHint="Tap to give a voice command like go back"
+            >
+                <Ionicons
+                    name={isListening ? "mic" : "mic-outline"}
+                    size={28}
+                    color={EyewayColors.textPrimary}
+                />
+                {isListening && (
+                    <View style={styles.listeningIndicator} />
+                )}
+            </TouchableOpacity>
         </LinearGradient>
     );
 }
@@ -269,5 +348,30 @@ const styles = StyleSheet.create({
         color: EyewayColors.textPrimary,
         fontSize: 18,
         fontWeight: '600',
+    },
+    floatingVoiceButton: {
+        position: 'absolute',
+        bottom: 30,
+        right: 24,
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        backgroundColor: EyewayColors.accentBlue,
+        alignItems: 'center',
+        justifyContent: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 8,
+    },
+    listeningIndicator: {
+        position: 'absolute',
+        width: 72,
+        height: 72,
+        borderRadius: 36,
+        borderWidth: 3,
+        borderColor: EyewayColors.accentBlue,
+        opacity: 0.6,
     },
 });

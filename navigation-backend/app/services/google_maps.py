@@ -15,6 +15,13 @@ def fetch_directions(origin, destination, mode):
     data = response.json()
 
     if data.get("status") != "OK":
+        print(f"❌ Google Maps API error - Status: {data.get('status')}, Destination: '{destination}', Mode: {mode}")
+        if data.get("status") == "ZERO_RESULTS":
+            print(f"   No route found for destination: '{destination}'")
+        elif data.get("status") == "NOT_FOUND":
+            print(f"   Destination could not be geocoded: '{destination}'")
+        elif data.get("error_message"):
+            print(f"   Error message: {data.get('error_message')}")
         return None
     return data
 

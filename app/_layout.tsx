@@ -1,13 +1,11 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack, router } from 'expo-router';
+import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 // Initialize Firebase early in the app lifecycle
 import '@/app/config/firebase.config';
-import { useHomeVoiceControl } from '@/hooks/useHomeVoiceControl';
-import { VoiceAction } from '@/hooks/voiceCommands';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -16,6 +14,12 @@ export const unstable_settings = {
 export default function RootLayout() {
   const colorScheme = useColorScheme();
 
+  // Disabled continuous voice control in favor of session-based prompts
+  // Voice interaction now follows turn-based pattern:
+  // 1. Initial prompt after sign-in (in home screen)
+  // 2. Screen-specific voice flows (navigation destination, route reading)
+  // This ensures proper turn-taking: app speaks → mic activates → user speaks → app acts
+  /*
   useHomeVoiceControl((action: VoiceAction) => {
     try {
       switch (action) {
@@ -41,6 +45,7 @@ export default function RootLayout() {
       console.error('Navigation failed:', e);
     }
   });
+  */
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
