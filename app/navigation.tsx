@@ -6,6 +6,7 @@ import { useVoiceTurnManager } from '@/hooks/useVoiceTurnManager';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
+import AppBackground from '@/components/app-background';
 import * as Location from 'expo-location';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Speech from 'expo-speech';
@@ -407,10 +408,7 @@ export default function NavigationScreen() {
     };
 
     return (
-        <LinearGradient
-            colors={[EyewayColors.backgroundStart, EyewayColors.backgroundEnd]}
-            style={styles.container}
-        >
+        <AppBackground contentContainerStyle={{ marginTop: 40, marginLeft: 0, marginRight: 'auto' }}>
             {/* Header */}
             <View style={styles.header}>
                 <Pressable
@@ -465,16 +463,14 @@ export default function NavigationScreen() {
                     Tap the microphone to use voice input, or type your destination above.
                 </Text>
             </View>
-        </LinearGradient>
+        </AppBackground>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        paddingTop: 60,
-        paddingBottom: 40,
-        paddingHorizontal: 24,
+        // padding removed, handled by AppBackground
     },
     header: {
         flexDirection: 'row',
@@ -532,6 +528,9 @@ const styles = StyleSheet.create({
     },
     startButton: {
         marginBottom: 24,
+        minWidth: 180,
+        maxWidth: 320,
+        alignSelf: 'center',
     },
     loadingContainer: {
         flexDirection: 'row',

@@ -3,6 +3,7 @@ import { useVoiceTurnManager } from '@/hooks/useVoiceTurnManager';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
+import AppBackground from '@/components/app-background';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -65,10 +66,7 @@ export default function ModalScreen() {
   };
 
   return (
-    <LinearGradient
-      colors={[EyewayColors.backgroundStart, EyewayColors.backgroundEnd]}
-      style={styles.container}
-    >
+    <AppBackground>
       <View style={styles.header}>
         <Pressable onPress={handleBack} style={styles.backButton}>
           <Ionicons name="arrow-back" size={28} color={EyewayColors.textPrimary} />
@@ -102,7 +100,7 @@ export default function ModalScreen() {
           <View style={styles.listeningIndicator} />
         )}
       </TouchableOpacity>
-    </LinearGradient>
+    </AppBackground>
   );
 }
 
@@ -164,6 +162,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
+    minWidth: 180,
+    maxWidth: 320,
+    alignSelf: 'center',
   },
   listeningIndicator: {
     position: 'absolute',

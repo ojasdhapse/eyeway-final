@@ -4,6 +4,7 @@ import { EyewayColors } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
+import AppBackground from '@/components/app-background';
 import * as Location from 'expo-location';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Speech from 'expo-speech';
@@ -287,24 +288,18 @@ export default function ActiveNavigationScreen() {
 
     if (isLoading) {
         return (
-            <LinearGradient
-                colors={[EyewayColors.backgroundStart, EyewayColors.backgroundEnd]}
-                style={styles.container}
-            >
+            <AppBackground contentContainerStyle={{ marginTop: 40, marginLeft: 0, marginRight: 'auto' }}>
                 <View style={styles.loadingContainer}>
                     <ActivityIndicator size="large" color={EyewayColors.accentBlue} />
                     <Text style={styles.loadingText}>Loading navigation...</Text>
                 </View>
-            </LinearGradient>
+            </AppBackground>
         );
     }
 
     if (error || !navigationData) {
         return (
-            <LinearGradient
-                colors={[EyewayColors.backgroundStart, EyewayColors.backgroundEnd]}
-                style={styles.container}
-            >
+            <AppBackground contentContainerStyle={{ marginTop: 40, marginLeft: 0, marginRight: 'auto' }}>
                 <View style={styles.errorContainer}>
                     <Ionicons name="alert-circle" size={64} color={EyewayColors.error} />
                     <Text style={styles.errorText}>{error || 'No navigation data'}</Text>
@@ -312,7 +307,7 @@ export default function ActiveNavigationScreen() {
                         <Text style={styles.backButtonText}>Go Back</Text>
                     </Pressable>
                 </View>
-            </LinearGradient>
+            </AppBackground>
         );
     }
 
@@ -325,10 +320,7 @@ export default function ActiveNavigationScreen() {
         : currentStep.distance_meters;
 
     return (
-        <LinearGradient
-            colors={[EyewayColors.backgroundStart, EyewayColors.backgroundEnd]}
-            style={styles.container}
-        >
+        <AppBackground contentContainerStyle={{ marginTop: 40, marginLeft: 0, marginRight: 'auto' }}>
             {/* Header */}
             <View style={styles.header}>
                 <View style={styles.headerInfo}>
@@ -440,7 +432,7 @@ export default function ActiveNavigationScreen() {
 
             {/* Obstacle Detection Overlay (NEW - non-intrusive) */}
             <ObstacleDetector enabled={obstacleDetectionEnabled} showCamera={false} />
-        </LinearGradient>
+        </AppBackground>
     );
 }
 
@@ -457,9 +449,7 @@ const getManeuverIcon = (maneuver: string): keyof typeof Ionicons.glyphMap => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        paddingTop: 60,
-        paddingBottom: 20,
-        paddingHorizontal: 24,
+        // padding removed, handled by AppBackground
     },
     loadingContainer: {
         flex: 1,
@@ -611,7 +601,6 @@ const styles = StyleSheet.create({
         marginTop: 12,
     },
     footerButton: {
-        flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
@@ -619,6 +608,9 @@ const styles = StyleSheet.create({
         paddingVertical: 14,
         borderRadius: 12,
         backgroundColor: EyewayColors.primaryButton,
+        minWidth: 140,
+        maxWidth: 280,
+        alignSelf: 'center',
     },
     footerButtonPressed: {
         backgroundColor: EyewayColors.primaryButtonHover,

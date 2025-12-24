@@ -5,6 +5,7 @@ import { useVoiceTurnManager } from '@/hooks/useVoiceTurnManager';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
+import AppBackground from '@/components/app-background';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Speech from 'expo-speech';
 import React, { useEffect, useRef, useState } from 'react';
@@ -132,10 +133,7 @@ export default function RoutesScreen() {
     };
 
     return (
-        <LinearGradient
-            colors={[EyewayColors.backgroundStart, EyewayColors.backgroundEnd]}
-            style={styles.container}
-        >
+        <AppBackground contentContainerStyle={{ marginTop: 40, marginLeft: 0, marginRight: 'auto' }}>
             {/* Header */}
             <View style={styles.header}>
                 <Pressable onPress={handleBack} style={styles.backButton}>
@@ -217,16 +215,14 @@ export default function RoutesScreen() {
                     <View style={styles.listeningIndicator} />
                 )}
             </TouchableOpacity>
-        </LinearGradient>
+        </AppBackground>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        paddingTop: 60,
-        paddingBottom: 40,
-        paddingHorizontal: 24,
+        // padding removed, handled by AppBackground
     },
     header: {
         flexDirection: 'row',
@@ -289,6 +285,9 @@ const styles = StyleSheet.create({
         padding: 20,
         borderRadius: 16,
         gap: 16,
+        minWidth: 220,
+        maxWidth: 340,
+        alignSelf: 'center',
     },
     routeCardPressed: {
         backgroundColor: EyewayColors.secondaryButtonHover,

@@ -1,6 +1,7 @@
 import { auth } from '@/app/config/firebase.config';
 import { StatusIndicator } from '@/components/status-indicator';
 import { VoiceButton } from '@/components/voice-button';
+import AppBackground from '@/components/app-background';
 import { EyewayColors } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
 import { useVoiceTurnManager } from '@/hooks/useVoiceTurnManager';
@@ -126,10 +127,7 @@ export default function HomeScreen() {
   };
 
   return (
-    <LinearGradient
-      colors={[EyewayColors.backgroundStart, EyewayColors.backgroundEnd]}
-      style={styles.container}
-    >
+    <AppBackground contentContainerStyle={{ marginTop: 40, alignItems: 'center', marginLeft: 0, marginRight: 0 }}>
       {/* Header with Logo */}
       <View style={styles.header}>
         <View style={styles.logoContainer}>
@@ -164,19 +162,18 @@ export default function HomeScreen() {
             variant="secondary"
             style={styles.button}
           />
+          <VoiceButton
+            title="Logout"
+            onPress={handleLogout}
+            variant="secondary"
+            style={styles.logoutButton}
+          />
         </View>
       </View>
 
       {/* Footer with Status and Settings */}
       <View style={styles.footer}>
         <StatusIndicator status={status} />
-        <VoiceButton
-          title="Logout"
-          onPress={handleLogout}
-          variant="secondary"
-          style={styles.logoutButton}
-        />
-
         <Pressable
           onPress={handleSettings}
           style={({ pressed }) => [
@@ -193,20 +190,20 @@ export default function HomeScreen() {
           />
         </Pressable>
       </View>
-    </LinearGradient>
+    </AppBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 60,
-    paddingBottom: 40,
-    paddingHorizontal: 24,
+    // padding removed, handled by AppBackground
   },
   header: {
     alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 40,
+    width: '100%',
   },
   logoContainer: {
     flexDirection: 'row',
@@ -239,20 +236,34 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     gap: 16,
+    alignItems: 'center',
     paddingHorizontal: 8,
+    alignItems: 'center',
   },
   button: {
     marginVertical: 4,
+    minWidth: 240,
+    maxWidth: 320,
+    alignSelf: 'center',
   },
   footer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 20,
+    marginTop: 8, // reduced from 20 to move buttons up
+    gap: 12,
+    flexWrap: 'wrap',
+  },
+  actionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
   logoutButton: {
-    flex: 1,
-    marginRight: 12,
+    minWidth: 120,
+    maxWidth: 180,
+    marginRight: 0,
+    alignSelf: 'center',
   },
   settingsButton: {
     width: 56,
